@@ -51,12 +51,15 @@ sudo chown $(id -u):$(id -g) ~/.kube/config
 kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
 ```
 
+### Agafar comanda per unir el worker
+```bash
+(Al master)
+kubeadm token create --print-join-command
+```
 
 
-
-##PREPARAR WORKER
-
-
-
-
-
+## Verificacio
+```bash
+kubectl get nodes
+kubectl get pods -n kube-system
+```
