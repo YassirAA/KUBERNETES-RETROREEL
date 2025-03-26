@@ -58,7 +58,7 @@ kubeadm token create --print-join-command
 ```
 
 
-## Verificacio
+## VERIFICACIO
 ```bash
 kubectl get nodes
 kubectl get pods -n kube-system
