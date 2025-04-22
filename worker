@@ -1,0 +1,25 @@
+#!/bin/bash
+
+echo "💀 Reseteando Kubernetes..."
+kubeadm reset -f
+
+echo "🧹 Borrando restos..."
+rm -rf /etc/kubernetes/ /var/lib/etcd ~/.kube
+
+echo "🔄 Reiniciando servicios..."
+systemctl restart containerd
+systemctl restart kubelet
+
+echo "🚀 Iniciando clúster con kubeadm..."
+kubeadm init --pod-network-cidr=192.168.0.0/16
+
+echo "📂 Configurando kubectl..."
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+
+echo "🕸️ Aplicando Calico..."
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+echo "✅ FIN. Comprueba los nodos con:"
+echo "kubectl get nodes"
