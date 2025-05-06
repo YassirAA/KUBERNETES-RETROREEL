@@ -1,91 +1,103 @@
-# 🧱 REQUISITOS PREVIOS
 
-- Debian 12 instalado  
-- Usuario con permisos `sudo`  
-- IP fija: `10.0.0.75`  
-- Firewall desactivado o configurado  
-- Nombre del host configurado (ej: `hostnamectl set-hostname master-node`)
+# 🚀 Kubernetes Multi-Node Cluster en Ubuntu 24.04 LTS usando Kubeadm + Calico
+
+Este tutorial describe paso a paso cómo desplegar un clúster multi-nodo de Kubernetes usando `kubeadm`, `containerd` y **Calico como red CNI**, en servidores Ubuntu 24.04 LTS actualizados.
 
 ---
 
-## 1. Actualizar el sistema e instalar dependencias básicas
+## 🔧 Requisitos
+
+- 2 o más máquinas con Ubuntu 24.04 LTS
+- Mínimo 2 vCPU y 2 GB de RAM por máquina
+- Conectividad entre los nodos
+- Acceso root o privilegios `sudo`
+- Swap desactivado
+
+---
+
+## 1️⃣ Actualizar sistema e instalar dependencias
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y apt-transport-https ca-certificates curl gnupg lsb-release software-properties-common
+sudo apt install apt-transport-https curl -y
 ```
-
-## 2. Desactivar swap (obligatorio para kubelet)
+## Instalar y configurar containerd
 ```bash
-sudo swapoff -a
-sudo sed -i '/swap/d' /etc/fstab
-```
+sudo apt install containerd -y
 
-## 3. Cargar módulos del kernel necesarios
-```bash
-cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
-overlay
-br_netfilter
-EOF
-
-sudo modprobe overlay
-sudo modprobe br_netfilter
-
-cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-iptables = 1
-net.ipv4.ip_forward = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-EOF
-
-sudo sysctl --system
-```
-
-## 4. Instalar containerd
-```bash
-  sudo apt install -y containerd
 sudo mkdir -p /etc/containerd
-sudo containerd config default | sudo tee /etc/containerd/config.toml >/dev/null
+containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+
+# Cambiar el valor de cgroups a systemd
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
 sudo systemctl restart containerd
-sudo systemctl enable containerd
+
 ```
-
-## 5. Instalar Kubernetes (kubeadm, kubelet, kubectl)
+## Instalar kubelet, kubeadm y kubectl
 ```bash
-sudo curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+sudo mkdir -p /etc/apt/keyrings
 
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key \
+  | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' \
+  | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
 sudo apt update
 sudo apt install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
-```
 
-## 6. Inicializar el cluster con kubeadm
+```
+## Desactivar swap
 ```bash
-sudo kubeadm init --apiserver-advertise-address=10.0.0.75 --pod-network-cidr=192.168.0.0/16
-```
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 
-## 7. Configurar kubectl para el usuario actual
+```
+## Cargar módulos del kernel necesarios
+```bash
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+```
+## Aplicar parámetros sysctl requeridos por Kubernetes
+```bash
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+sudo sysctl --system
+
+```
+## Inicializar el clúster (solo en el nodo master)
+```bash
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+
+```
+## Configurar kubectl (solo en el nodo master)
 ```bash
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
-```
 
-## 8. Instalar Calico como CNI
+```
+## Instalar Calico como red CNI (solo en el nodo master)
 ```bash
-curl https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml -O
-kubectl apply -f calico.yaml
-```
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
 
-## 9. Verificar estado del cluster
+```
+## Verificar el estado del clúster
 ```bash
 kubectl get nodes
-kubectl get pods -A
-```
+kubectl get pods --all-namespaces
 
-## 🔒 (Opcional) Desactivar firewall para evitar dramas
+```
+## Añadir nodos workers al clúster
 ```bash
-sudo systemctl stop ufw
-sudo systemctl disable ufw
+sudo kubeadm join <MASTER_IP>:6443 --token <TOKEN> \
+    --discovery-token-ca-cert-hash sha256:<HASH>
+
 ```
