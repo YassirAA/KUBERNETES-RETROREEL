@@ -12,7 +12,7 @@ Este tutorial describe paso a paso cómo desplegar un clúster multi-nodo de Kub
 - Conectividad entre los nodos
 - Acceso root o privilegios `sudo`
 - Swap desactivado
-- I muy importante tener dos ip's configuradas en nuestra maquina para que funcione correctamente el cluster en mi caso tengo una publica 192.168.0.X y la privada entre solo los nodes 192.168.10.X
+- Muy importante tener dos ip's configuradas en nuestra maquina para que funcione correctamente el cluster en mi caso tengo una publica 192.168.0.X y la privada entre solo los nodes 192.168.10.X
 
 ---
 
