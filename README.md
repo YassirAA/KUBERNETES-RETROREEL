@@ -103,8 +103,4 @@ sudo kubeadm join <MASTER_IP>:6443 --token <TOKEN> \
 
 ```
 
-## Mirar tots els pods
-```bash
-kubectl get pods --all-namespaces
 
-```
