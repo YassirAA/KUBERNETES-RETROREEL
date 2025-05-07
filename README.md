@@ -102,3 +102,9 @@ sudo kubeadm join <MASTER_IP>:6443 --token <TOKEN> \
     --discovery-token-ca-cert-hash sha256:<HASH>
 
 ```
+
+## Mirar tots els pods
+```bash
+kubectl get pods --all-namespaces
+
+```
