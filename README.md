@@ -16,7 +16,7 @@ Este tutorial describe paso a paso cómo desplegar un clúster multi-nodo de Kub
 
 ---
 
-## 1️⃣ Actualizar sistema e instalar dependencias
+## Actualizar sistema e instalar dependencias
 
 ```bash
 sudo apt update && sudo apt upgrade -y
